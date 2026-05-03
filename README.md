@@ -209,7 +209,7 @@ See [docs/LIVE_DEMO.md](docs/LIVE_DEMO.md) for complete VM setup and attack simu
 
 ---
 
-## ⚙️ System Requirements
+##  System Requirements
 
 ### **Minimum Requirements:**
 - **Operating System:** Windows 10/11, macOS 10.15+, or Linux (Ubuntu 20.04+)
@@ -231,7 +231,7 @@ See [docs/LIVE_DEMO.md](docs/LIVE_DEMO.md) for complete VM setup and attack simu
 
 ---
 
-## 🔑 Configuration & Credentials
+##  Configuration & Credentials
 
 ### **Required API Keys/Credentials:**
 
@@ -269,7 +269,7 @@ GCP_PROJECT="your-project-id"
 
 ---
 
-## 📖 User Manual
+##  User Manual
 
 ### **Accessing the Dashboard:**
 1. Navigate to: `https://your-project-id.web.app`
