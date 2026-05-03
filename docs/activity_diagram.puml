@@ -1,0 +1,129 @@
+@startuml Activity_Diagram
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam DefaultFontColor #000000
+skinparam ActivityBackgroundColor #F5F5F5
+skinparam ActivityBorderColor #333333
+skinparam ActivityBarColor #E91E63
+skinparam ActivityDiamondBackgroundColor #F5F5F5
+skinparam ActivityDiamondBorderColor #333333
+skinparam ArrowColor #E91E63
+
+title Log Processing & Anomaly Detection\nActivity Diagram
+
+|Client Application|
+start
+:Generate Log Event\n(Error/Warning/Info);
+
+:Format Log as JSON;
+
+:Send HTTPS POST\nto Ingestion Endpoint;
+
+|Ingestion Layer|
+:Receive HTTP Request;
+
+:Validate Log Format;
+
+if (Valid Format?) then (yes)
+  :Add Ingestion Timestamp;
+  :Publish to Pub/Sub\n(raw-logs topic);
+  :Return 202 Accepted\n(533ms avg);
+else (no)
+  :Return 400 Bad Request;
+  stop
+endif
+
+|Message Queue|
+:Queue Message\n(Pub/Sub raw-logs);
+
+|Processing - Parser|
+:Event Trigger Activated;
+
+:Receive Message from Queue;
+
+:Detect Log Format\n(JSON/nginx/text);
+
+if (Format Detected?) then (JSON)
+  :Parse JSON Fields;
+elseif (nginx) then
+  :Parse Nginx Format;
+elseif (text) then
+  :Parse Plain Text;
+else (unknown)
+  :Mark as Unparsed;
+endif
+
+:Extract Fields:\n- timestamp\n- level\n- source\n- message;
+
+:Publish to processed-logs\ntopic;
+
+|Processing - Enrichment|
+:Event Trigger Activated;
+
+:Receive Parsed Log;
+
+:Mask PII Data:\n- Credit cards → ***MASKED_CC***\n- Emails → ***MASKED_EMAIL***\n- Phone → ***MASKED_PHONE***\n- SSN → ***MASKED_SSN***;
+
+if (IP Address Present?) then (yes)
+  :Get GeoIP Data\n(Country, City);
+  :Add Geographic Info;
+endif
+
+if (User Agent Present?) then (yes)
+  :Parse User Agent;
+  :Add Device Info\n(Browser, OS, Device);
+endif
+
+:Add enriched_at timestamp;
+
+|Storage Layer|
+:Store in Firestore\n(logs collection);
+
+:Index by:\n- timestamp\n- level\n- source;
+
+|Detection Layer|
+:Statistical Detector\nRuns Every 5 Minutes;
+
+:Query Last Hour of Logs;
+
+if (Logs Found?) then (yes)
+  :Calculate Error Rate;
+  :Calculate Z-Score\n(Error Rate);
+  
+  if (Z-Score > 3?) then (yes)
+    :Create Error Rate\nAnomaly Alert;
+    #FFB3D9:Flag as ANOMALY;
+  endif
+  
+  :Count Log Volume;
+  :Calculate Z-Score\n(Volume);
+  
+  if (Z-Score > 3?) then (yes)
+    :Create Volume\nAnomaly Alert;
+    #FFB3D9:Flag as ANOMALY;
+  endif
+else (no)
+  :Log "No recent logs";
+endif
+
+|Alerting Layer (Future)|
+if (Anomaly Detected?) then (yes)
+  :Send Email Alert\n(SendGrid);
+  :Send Slack Message\n(Webhook);
+  if (Severity = CRITICAL?) then (yes)
+    :Send SMS Alert\n(Twilio);
+  endif
+endif
+
+stop
+
+legend right
+  **Performance Metrics**
+  Ingestion: 533ms avg latency
+  Throughput: 77 logs/sec
+  Processing: 2-5 seconds end-to-end
+  Detection: Runs every 5 minutes
+  Storage: Real-time sync
+endlegend
+
+@enduml

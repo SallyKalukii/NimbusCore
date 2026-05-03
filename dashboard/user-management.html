@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - NimbusCore</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Space Grotesk', -apple-system, sans-serif;
+            background: #000000;
+            color: #FFFFFF;
+            overflow-x: hidden;
+        }
+
+        /* 3D Animated Background */
+        #canvas-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .content-wrapper {
+            position: relative;
+            z-index: 1;
+        }
+
+        .management-header {
+            background: linear-gradient(135deg, rgba(224, 17, 95, 0.08) 0%, rgba(0, 0, 0, 0.4) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(224, 17, 95, 0.15);
+            padding: 35px 40px;
+            border-radius: 16px;
+            margin-bottom: 35px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .management-header h1 {
+            font-size: 2em;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #FFFFFF;
+        }
+
+        .search-filter {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 12px;
+            background: rgba(26, 26, 26, 0.8);
+            border: 1px solid rgba(224, 17, 95, 0.2);
+            border-radius: 8px;
+            color: var(--white);
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #E0115F;
+            box-shadow: 0 0 15px rgba(224, 17, 95, 0.2);
+        }
+
+        .filter-select {
+            padding: 12px;
+            background: rgba(26, 26, 26, 0.8);
+            border: 1px solid rgba(224, 17, 95, 0.2);
+            border-radius: 8px;
+            color: var(--white);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #E0115F;
+        }
+
+        .btn-primary {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #E0115F 0%, #c00f52 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(224, 17, 95, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(224, 17, 95, 0.4);
+        }
+
+        .card {
+            background: linear-gradient(135deg, rgba(26, 26, 26, 0.9) 0%, rgba(42, 42, 42, 0.7) 100%);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(224, 17, 95, 0.15);
+            border-radius: 12px;
+            padding: 28px;
+            overflow-x: auto;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, rgba(26, 26, 26, 0.95) 0%, rgba(42, 42, 42, 0.9) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(224, 17, 95, 0.3);
+            padding: 40px;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(224, 17, 95, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(224, 17, 95, 0.3);
+        }
+
+        .modal-header h2 {
+            color: #FFFFFF;
+            font-size: 1.5em;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--white);
+            font-size: 2em;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .close-btn:hover {
+            color: #E0115F;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #CCCCCC;
+            font-size: 0.9em;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(224, 17, 95, 0.2);
+            border-radius: 8px;
+            color: var(--white);
+            transition: all 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #E0115F;
+            box-shadow: 0 0 15px rgba(224, 17, 95, 0.2);
+        }
+
+        .action-btn {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            margin-right: 6px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .btn-edit {
+            background: #FFA500;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #FF8C00;
+            transform: translateY(-2px);
+        }
+
+        .btn-delete {
+            background: #E0115F;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #c00f52;
+            transform: translateY(-2px);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        thead tr {
+            border-bottom: 2px solid rgba(224, 17, 95, 0.3);
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 700;
+            color: #FFFFFF;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.8em;
+            border-bottom: 2px solid rgba(224, 17, 95, 0.3);
+        }
+
+        tbody tr {
+            border-bottom: 1px solid rgba(224, 17, 95, 0.1);
+            transition: all 0.3s;
+        }
+
+        tbody tr:hover {
+            background: rgba(224, 17, 95, 0.05);
+        }
+
+        td {
+            padding: 16px 15px;
+            color: #CCCCCC;
+            font-size: 0.9em;
+        }
+
+        .text-grey {
+            color: #999999;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge-high {
+            background: #E0115F;
+            color: white;
+        }
+
+        .badge-medium {
+            background: #FFA500;
+            color: white;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-active {
+            background: #00FF00;
+            box-shadow: 0 0 10px #00FF00;
+        }
+
+        .status-inactive {
+            background: #808080;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #808080;
+        }
+
+        .spinner {
+            border: 3px solid #2a2a2a;
+            border-top: 3px solid #E0115F;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- 3D Animated Background -->
+    <canvas id="canvas-bg"></canvas>
+
+    <div class="content-wrapper">
+        <!-- Header -->
+        <div class="header">
+            <div class="container">
+                <div class="header-content">
+                    <a href="admin-dashboard.html" class="logo">Nimbus<span>Core</span></a>
+                    <div class="nav-links">
+                        <a href="admin-dashboard.html">Dashboard</a>
+                        <a href="user-management.html">Users</a>
+                        <a href="#" id="user-email"></a>
+                        <button class="btn-logout" onclick="handleLogout()">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- Management Header -->
+            <div class="management-header">
+                <div>
+                    <h1>User Management</h1>
+                    <p class="text-grey">Manage user accounts and permissions</p>
+                </div>
+                <button class="btn-primary" onclick="showAddUserModal()">
+                    ➕ Add New User
+                </button>
+            </div>
+
+            <!-- Search and Filter -->
+            <div class="search-filter">
+                <input 
+                    type="text" 
+                    class="search-input" 
+                    id="search-users" 
+                    placeholder="Search by name or email..."
+                    oninput="filterUsers()"
+                >
+                <select class="filter-select" id="role-filter" onchange="filterUsers()">
+                    <option value="all">All Roles</option>
+                    <option value="admin">Admin</option>
+                    <option value="user">User</option>
+                </select>
+                <select class="filter-select" id="status-filter" onchange="filterUsers()">
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+
+            <!-- Users Table -->
+            <div class="card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Last Login</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        <tr>
+                            <td colspan="7" class="loading">
+                                <div class="spinner"></div>
+                                Loading users...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit User Modal -->
+    <div class="modal" id="user-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Add New User</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="user-form">
+                <input type="hidden" id="user-id">
+                
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" id="user-name" class="form-input" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" id="user-email-input" class="form-input" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" id="user-password" class="form-input" required>
+                    <small class="text-grey">Minimum 6 characters</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Role</label>
+                    <select id="user-role" class="form-input" required>
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Organization</label>
+                    <input type="text" id="user-org" class="form-input" placeholder="Optional">
+                </div>
+
+                <button type="submit" class="btn-primary" style="width: 100%;">
+                    Save User
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script src="js/firebase-config.js"></script>
+    
+    <script>
+        let allUsers = [];
+
+        // Check auth
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                window.location.href = 'login.html?type=admin';
+                return;
+            }
+            
+            const role = await getUserRole(user.uid);
+            if (role !== 'admin') {
+                alert('Access denied');
+                window.location.href = 'user-dashboard.html';
+                return;
+            }
+            
+            document.getElementById('user-email').textContent = user.email;
+            loadUsers();
+        });
+
+        function handleLogout() {
+            auth.signOut().then(() => window.location.href = 'index.html');
+        }
+
+        // Load all users
+        async function loadUsers() {
+            try {
+                const snapshot = await db.collection('users').get();
+                allUsers = [];
+                
+                snapshot.forEach(doc => {
+                    allUsers.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                
+                displayUsers(allUsers);
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+        }
+
+        // Display users
+        function displayUsers(users) {
+            const tbody = document.getElementById('users-table-body');
+            
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center">No users found</td></tr>';
+                return;
+            }
+            
+            let html = '';
+            users.forEach(user => {
+                const statusClass = user.status === 'active' ? 'status-active' : 'status-inactive';
+                const roleClass = user.role === 'admin' ? 'badge-high' : 'badge-medium';
+                
+                html += `
+                    <tr>
+                        <td>${user.displayName || 'N/A'}</td>
+                        <td>${user.email}</td>
+                        <td><span class="badge ${roleClass}">${user.role}</span></td>
+                        <td><span class="status-indicator ${statusClass}"></span>${user.status || 'active'}</td>
+                        <td>${formatTimestamp(user.lastLogin)}</td>
+                        <td>${formatTimestamp(user.createdAt)}</td>
+                        <td>
+                            <button class="action-btn btn-edit" onclick="editUser('${user.id}')">Edit</button>
+                            <button class="action-btn btn-delete" onclick="deleteUser('${user.id}', '${user.email}')">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+
+        // Filter users
+        function filterUsers() {
+            const search = document.getElementById('search-users').value.toLowerCase();
+            const roleFilter = document.getElementById('role-filter').value;
+            const statusFilter = document.getElementById('status-filter').value;
+            
+            let filtered = allUsers.filter(user => {
+                const matchesSearch = user.email.toLowerCase().includes(search) || 
+                                    (user.displayName || '').toLowerCase().includes(search);
+                const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+                const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+                
+                return matchesSearch && matchesRole && matchesStatus;
+            });
+            
+            displayUsers(filtered);
+        }
+
+        // Show add user modal
+        function showAddUserModal() {
+            document.getElementById('modal-title').textContent = 'Add New User';
+            document.getElementById('user-form').reset();
+            document.getElementById('user-id').value = '';
+            document.getElementById('user-password').required = true;
+            document.getElementById('user-modal').style.display = 'flex';
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('user-modal').style.display = 'none';
+        }
+
+        // Edit user
+        async function editUser(userId) {
+            const user = allUsers.find(u => u.id === userId);
+            if (!user) return;
+            
+            document.getElementById('modal-title').textContent = 'Edit User';
+            document.getElementById('user-id').value = userId;
+            document.getElementById('user-name').value = user.displayName || '';
+            document.getElementById('user-email-input').value = user.email;
+            document.getElementById('user-password').value = '';
+            document.getElementById('user-password').placeholder = 'Leave blank to keep current';
+            document.getElementById('user-password').required = false;
+            document.getElementById('user-role').value = user.role;
+            document.getElementById('user-org').value = user.organization || '';
+            
+            document.getElementById('user-modal').style.display = 'flex';
+        }
+
+        // Delete user
+        async function deleteUser(userId, email) {
+            if (!confirm(`Are you sure you want to delete ${email}?`)) return;
+            
+            try {
+                await db.collection('users').doc(userId).delete();
+                alert('User deleted successfully');
+                loadUsers();
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                alert('Error deleting user');
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('user-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const userId = document.getElementById('user-id').value;
+            const name = document.getElementById('user-name').value;
+            const email = document.getElementById('user-email-input').value;
+            const password = document.getElementById('user-password').value;
+            const role = document.getElementById('user-role').value;
+            const org = document.getElementById('user-org').value;
+            
+            try {
+                if (userId) {
+                    // Update existing user
+                    await db.collection('users').doc(userId).update({
+                        displayName: name,
+                        role: role,
+                        organization: org,
+                        updatedAt: new Date().toISOString()
+                    });
+                    alert('User updated successfully');
+                } else {
+                    // Create new user
+                    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                    await db.collection('users').doc(userCredential.user.uid).set({
+                        email: email,
+                        displayName: name,
+                        role: role,
+                        organization: org,
+                        status: 'active',
+                        createdAt: new Date().toISOString(),
+                        lastLogin: null
+                    });
+                    alert('User created successfully');
+                }
+                
+                closeModal();
+                loadUsers();
+            } catch (error) {
+                console.error('Error saving user:', error);
+                alert('Error: ' + error.message);
+            }
+        });
+
+        // 3D Background Animation
+        const canvas = document.getElementById('canvas-bg');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        camera.position.z = 5;
+
+        // Particles
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 2500;
+        const posArray = new Float32Array(particlesCount * 3);
+
+        for (let i = 0; i < particlesCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 12;
+        }
+
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+        const particlesMaterial = new THREE.PointsMaterial({
+            size: 0.012,
+            color: 0xE0115F,
+            transparent: true,
+            opacity: 0.5,
+            blending: THREE.AdditiveBlending
+        });
+
+        const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particlesMesh);
+
+        // Animated Grid
+        const gridHelper = new THREE.GridHelper(18, 18, 0xE0115F, 0x222222);
+        gridHelper.position.y = -3;
+        gridHelper.material.opacity = 0.15;
+        gridHelper.material.transparent = true;
+        scene.add(gridHelper);
+
+        let mouseX = 0, mouseY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            particlesMesh.rotation.y += 0.0004;
+            particlesMesh.rotation.x += 0.0002;
+            particlesMesh.rotation.y += mouseX * 0.00004;
+            particlesMesh.rotation.x += mouseY * 0.00004;
+            
+            gridHelper.rotation.y += 0.0008;
+            
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

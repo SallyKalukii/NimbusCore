@@ -1,0 +1,124 @@
+@startuml Flowchart_Anomaly_Detection
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam DefaultFontColor #000000
+skinparam ActivityBackgroundColor #F5F5F5
+skinparam ActivityBorderColor #333333
+skinparam ActivityDiamondBackgroundColor #F5F5F5
+skinparam ActivityDiamondBorderColor #333333
+skinparam ActivityBarColor #E91E63
+skinparam ArrowColor #E91E63
+
+title Statistical Anomaly Detection Flowchart\nZ-Score Analysis Method
+
+start
+
+:Scheduled Execution\n(Every 5 minutes);
+
+partition "Initialize" {
+    :Set Z-Score Threshold = 3\n(99.7% confidence);
+    
+    :Set Error Rate Baseline:\nMean = 8%\nStd Dev = 3%;
+    
+    :Set Volume Baseline:\nMean = 100 logs/hour\nStd Dev = 30;
+}
+
+partition "Data Collection" {
+    :Query Firestore\nfor last 1 hour;
+    
+    if (Logs Found?) then (yes)
+        :Count Total Logs = N;
+    else (no)
+        #FFB3D9:Log "No recent logs found";
+        stop
+    endif
+}
+
+partition "Error Rate Analysis" {
+    :Count Error Logs = E\n(level = 'ERROR');
+    
+    :Calculate Current Error Rate:\nrate = (E / N) × 100;
+    
+    :Calculate Z-Score:\nZ_error = (rate - 8.0) / 3.0;
+    
+    if (|Z_error| > 3?) then (yes)
+        if (|Z_error| > 4?) then (yes)
+            :Create Anomaly:\nType = error_rate_anomaly\nSeverity = HIGH;
+            #FFB3D9:Add to Anomalies List;
+        else (no)
+            :Create Anomaly:\nType = error_rate_anomaly\nSeverity = MEDIUM;
+            #FFB3D9:Add to Anomalies List;
+        endif
+    else (no)
+        :No Error Rate Anomaly;
+    endif
+}
+
+partition "Volume Analysis" {
+    :Current Volume = N;
+    
+    :Calculate Z-Score:\nZ_volume = (N - 100) / 30;
+    
+    if (|Z_volume| > 3?) then (yes)
+        if (|Z_volume| > 4?) then (yes)
+            :Create Anomaly:\nType = volume_anomaly\nSeverity = HIGH;
+            #FFB3D9:Add to Anomalies List;
+        else (no)
+            :Create Anomaly:\nType = volume_anomaly\nSeverity = MEDIUM;
+            #FFB3D9:Add to Anomalies List;
+        endif
+    else (no)
+        :No Volume Anomaly;
+    endif
+}
+
+partition "Results" {
+    if (Anomalies Detected?) then (yes)
+        :Return JSON:\n{\n  "anomalies_detected": count,\n  "anomalies": [...]\n};
+        
+        note right
+          **Anomaly Structure**
+          - type
+          - detected_at
+          - metric
+          - current_value
+          - baseline_mean
+          - baseline_std
+          - z_score
+          - severity
+          - details
+        end note
+        
+        partition "Future: Trigger Alerts" #FAFAFA {
+            :Send Email Alert\n(SendGrid);
+            :Send Slack Message\n(Webhook);
+            if (Severity = HIGH?) then (yes)
+                :Send SMS Alert\n(Twilio);
+            endif
+        }
+    else (no)
+        :Return JSON:\n{\n  "anomalies_detected": 0,\n  "anomalies": []\n};
+    endif
+}
+
+:Log Detection Results;
+
+stop
+
+legend right
+  **Z-Score Interpretation**
+  |Z| ≤ 2.0: Normal (ignore)
+  2.0 < |Z| ≤ 3.0: Watch (monitor)
+  3.0 < |Z| ≤ 4.0: Anomaly (MEDIUM)
+  |Z| > 4.0: Critical (HIGH)
+  
+  **Statistical Confidence**
+  Z > 3: 99.7% certainty
+  Z > 4: 99.99% certainty
+  
+  **Performance**
+  Detection Time: < 2 seconds
+  False Positive Rate: < 1%
+endlegend
+
+@enduml

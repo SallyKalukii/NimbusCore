@@ -1,0 +1,123 @@
+@startuml System_Architecture
+!define RECTANGLE class
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam DefaultFontColor #000000
+skinparam DefaultFontName Segoe UI
+skinparam roundcorner 10
+skinparam shadowing false
+
+' Color scheme - print-friendly
+skinparam component {
+    BackgroundColor #F5F5F5
+    BorderColor #333333
+    ArrowColor #E91E63
+}
+
+skinparam package {
+    BackgroundColor #FAFAFA
+    BorderColor #666666
+    FontColor #000000
+}
+
+skinparam database {
+    BackgroundColor #F5F5F5
+    BorderColor #333333
+}
+
+skinparam note {
+    BackgroundColor #FFE4EE
+    BorderColor #E91E63
+    FontColor #000000
+}
+
+skinparam stereotype {
+    BackgroundColor #E0E0E0
+    BorderColor #999999
+}
+
+title Serverless Log Monitoring & Anomaly Detection\nSystem Architecture
+
+' Client Layer
+package "CLIENT LAYER" #FAFAFA {
+    component "Web Apps\n(React/Angular/Vue)" as WebApp #F5F5F5
+    component "Mobile Apps\n(iOS/Android)" as MobileApp #F5F5F5
+    component "Backend APIs\n(Node.js/Python/Java)" as BackendAPI #F5F5F5
+}
+
+' Ingestion Layer
+package "INGESTION LAYER" #FAFAFA {
+    component "HTTP Ingestion Endpoint\n(Cloud Function Gen2)\n533ms latency | 77 logs/sec" as Ingestion #FFB3D9
+}
+
+' Queue Layer
+package "QUEUE LAYER" #FAFAFA {
+    component "Message Broker\n(Google Cloud Pub/Sub)\nTopic: raw-logs" as PubSub #FFB3D9
+}
+
+' Processing Layer
+package "PROCESSING LAYER" #FAFAFA {
+    component "Parser\n(Cloud Function)\nExtract fields" as Parser #FFB3D9
+    component "Queue\n(Pub/Sub)\nprocessed-logs" as ProcessQueue #F5F5F5
+    component "Enrichment\n(Cloud Function)\nPII masking | GeoIP" as Enrichment #FFB3D9
+}
+
+' Storage Layer
+package "STORAGE LAYER" #FAFAFA {
+    database "Firestore Database\n(NoSQL)\nDocument storage | Real-time sync" as Firestore #FFB3D9
+}
+
+' Detection Layer (Current: Statistical only)
+package "DETECTION LAYER" #FAFAFA {
+    component "Statistical Detector\n(Z-Score Analysis)\nError rate | Volume" as Statistical #FFB3D9
+    component "Rule Engine\n(Pattern Matching)\n**[PLANNED]**" as RuleEngine #E0E0E0
+    component "ML Model\n(Predictions)\n**[PLANNED]**" as MLModel #E0E0E0
+}
+
+' Alerting Layer
+package "ALERTING LAYER" #FAFAFA {
+    component "Email\n(SendGrid)\n**[PLANNED]**" as Email #E0E0E0
+    component "Slack\n(Webhooks)\n**[PLANNED]**" as Slack #E0E0E0
+    component "SMS\n(Twilio)\n**[PLANNED]**" as SMS #E0E0E0
+}
+
+' Performance Metrics
+note right of Ingestion
+  **PERFORMANCE METRICS**
+  ✓ 100% Success Rate
+  ✓ 77 logs/second
+  ✓ 533ms Latency
+  ✓ 6.6M Daily Capacity
+end note
+
+' Data Flow
+WebApp -down-> Ingestion : HTTPS POST
+MobileApp -down-> Ingestion : HTTPS POST
+BackendAPI -down-> Ingestion : HTTPS POST
+
+Ingestion -down-> PubSub : Publish
+
+PubSub -down-> Parser : Event Trigger
+
+Parser -down-> ProcessQueue : Publish
+ProcessQueue -down-> Enrichment : Event Trigger
+
+Enrichment -down-> Firestore : Store
+
+Firestore -down-> Statistical : Query
+Statistical -down-> Email : Alert (Future)
+Statistical -down-> Slack : Alert (Future)
+
+Firestore -right-> RuleEngine : Query (Future)
+Firestore -right-> MLModel : Query (Future)
+
+RuleEngine -down-> SMS : Alert (Future)
+
+' Legend
+legend bottom
+  |= Component Status |= Description |
+  | <#FFB3D9> Active </color> | Currently deployed and operational |
+  | <#E0E0E0> Planned </color> | Future implementation (Week 2-3) |
+endlegend
+
+@enduml

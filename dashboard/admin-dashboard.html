@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Command Center - NimbusCore</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Space Grotesk', -apple-system, sans-serif;
+            background: #000000;
+            color: #FFFFFF;
+            overflow-x: hidden;
+        }
+
+        /* 3D Animated Background */
+        #canvas-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .content-wrapper {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .command-header {
+            background: linear-gradient(135deg, rgba(224, 17, 95, 0.08) 0%, rgba(0, 0, 0, 0.4) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(224, 17, 95, 0.15);
+            padding: 35px 40px;
+            border-radius: 16px;
+            margin-bottom: 35px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .command-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(224, 17, 95, 0.05), transparent);
+            animation: shimmer 4s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .command-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .title-section h1 {
+            font-size: 2em;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #FFFFFF;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: #999999;
+            font-size: 0.95em;
+            font-weight: 400;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 25px;
+            margin-top: 15px;
+            align-items: center;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+            color: #CCCCCC;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00FF00;
+            box-shadow: 0 0 12px #00FF00;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.9); }
+        }
+
+        .refresh-btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #E0115F 0%, #c00f52 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(224, 17, 95, 0.3);
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(224, 17, 95, 0.4);
+        }
+
+        .refresh-btn:active {
+            transform: translateY(0);
+        }
+
+        .refresh-icon {
+            display: inline-block;
+            transition: transform 0.6s ease;
+        }
+
+        .refresh-icon.spinning {
+            animation: spin 1s linear;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Main Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 35px;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, rgba(26, 26, 26, 0.9) 0%, rgba(42, 42, 42, 0.7) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(224, 17, 95, 0.15);
+            border-radius: 12px;
+            padding: 28px 25px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #E0115F, transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(224, 17, 95, 0.4);
+            box-shadow: 0 10px 30px rgba(224, 17, 95, 0.2);
+        }
+
+        .metric-card:hover::before {
+            opacity: 1;
+        }
+
+        .metric-label {
+            font-size: 0.85em;
+            color: #AAAAAA;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+
+        .metric-value {
+            font-size: 2.8em;
+            font-weight: 700;
+            color: #FFFFFF;
+            margin-bottom: 8px;
+            line-height: 1;
+        }
+
+        .metric-change {
+            font-size: 0.85em;
+            padding: 4px 12px;
+            background: rgba(0, 255, 0, 0.1);
+            border-radius: 12px;
+            display: inline-block;
+            color: #00FF00;
+            border: 1px solid rgba(0, 255, 0, 0.2);
+        }
+
+        /* Secondary Metrics */
+        .secondary-metrics {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 15px;
+            margin-bottom: 35px;
+        }
+
+        .secondary-card {
+            background: rgba(26, 26, 26, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(224, 17, 95, 0.1);
+            border-radius: 10px;
+            padding: 20px 18px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .secondary-card:hover {
+            border-color: rgba(224, 17, 95, 0.3);
+            transform: translateY(-3px);
+        }
+
+        .secondary-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #E0115F;
+            margin-bottom: 6px;
+        }
+
+        .secondary-label {
+            font-size: 0.75em;
+            color: #888888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Visualization Grid */
+        .viz-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 35px;
+        }
+
+        .viz-card {
+            background: linear-gradient(135deg, rgba(26, 26, 26, 0.9) 0%, rgba(42, 42, 42, 0.7) 100%);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(224, 17, 95, 0.15);
+            border-radius: 12px;
+            padding: 28px;
+            position: relative;
+        }
+
+        .viz-header {
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .viz-title {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #FFFFFF;
+            letter-spacing: -0.3px;
+        }
+
+        .viz-badge {
+            padding: 5px 14px;
+            background: rgba(224, 17, 95, 0.15);
+            border: 1px solid rgba(224, 17, 95, 0.3);
+            border-radius: 12px;
+            font-size: 0.75em;
+            color: #E0115F;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Activity Feed */
+        .activity-feed {
+            max-height: 440px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .activity-feed::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .activity-feed::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .activity-feed::-webkit-scrollbar-thumb {
+            background: #E0115F;
+            border-radius: 10px;
+        }
+
+        .activity-item {
+            background: rgba(0, 0, 0, 0.4);
+            border-left: 2px solid #E0115F;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.3s;
+            animation: slideIn 0.4s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .activity-item:hover {
+            background: rgba(224, 17, 95, 0.08);
+            transform: translateX(5px);
+            border-left-width: 3px;
+        }
+
+        .activity-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            align-items: center;
+        }
+
+        .activity-type {
+            font-weight: 600;
+            color: #FFFFFF;
+            font-size: 0.9em;
+        }
+
+        .activity-time {
+            font-size: 0.75em;
+            color: #888888;
+        }
+
+        .activity-desc {
+            color: #CCCCCC;
+            font-size: 0.85em;
+            line-height: 1.4;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            height: 350px;
+        }
+
+        canvas {
+            max-height: 100%;
+        }
+
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 35px;
+        }
+
+        .chart-card {
+            background: linear-gradient(135deg, rgba(26, 26, 26, 0.9) 0%, rgba(42, 42, 42, 0.7) 100%);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(224, 17, 95, 0.15);
+            border-radius: 12px;
+            padding: 28px;
+        }
+
+        .chart-card .chart-container {
+            height: 280px;
+        }
+
+        /* Users Section */
+        .users-section {
+            background: linear-gradient(135deg, rgba(26, 26, 26, 0.9) 0%, rgba(42, 42, 42, 0.7) 100%);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(224, 17, 95, 0.15);
+            border-radius: 12px;
+            padding: 28px;
+        }
+
+        .section-title {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #FFFFFF;
+            margin-bottom: 25px;
+            letter-spacing: -0.3px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        thead tr {
+            border-bottom: 2px solid rgba(224, 17, 95, 0.3);
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 700;
+            color: #FFFFFF;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.8em;
+            border-bottom: 2px solid rgba(224, 17, 95, 0.3);
+        }
+
+        tbody tr {
+            border-bottom: 1px solid rgba(224, 17, 95, 0.1);
+            transition: all 0.3s;
+        }
+
+        tbody tr:hover {
+            background: rgba(224, 17, 95, 0.05);
+        }
+
+        td {
+            padding: 16px 15px;
+            color: #CCCCCC;
+            font-size: 0.9em;
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .secondary-metrics {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .metrics-grid,
+            .secondary-metrics,
+            .viz-grid,
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 3D Animated Background -->
+    <canvas id="canvas-bg"></canvas>
+
+    <div class="content-wrapper">
+        <!-- Navigation -->
+        <div class="header">
+            <div class="container">
+                <div class="header-content">
+                    <a href="admin-dashboard.html" class="logo">Nimbus<span>Core</span></a>
+                    <div class="nav-links">
+    <a href="admin-dashboard.html">Dashboard</a>
+    <a href="user-management.html">User Management</a>
+    <a href="#" id="user-email"></a>
+    <button class="btn-logout" onclick="handleLogout()">Logout</button>
+</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- Command Header -->
+            <div class="command-header">
+                <div class="command-title">
+                    <div class="title-section">
+                        <h1>Command Center</h1>
+                        <p class="subtitle">Real-time security monitoring and system analytics</p>
+                        <div class="status-bar">
+                            <div class="status-item">
+                                <div class="status-dot"></div>
+                                <span>All Systems Operational</span>
+                            </div>
+                            <div class="status-item">
+                                <span>Administrator: <strong id="admin-name">Loading...</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="refresh-btn" onclick="handleRefresh()">
+                        <span class="refresh-icon" id="refresh-icon">↻</span> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Metrics -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Total Users</div>
+                    <div class="metric-value" id="total-users">-</div>
+                    <div class="metric-change" id="users-change">Loading...</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Total Alerts</div>
+                    <div class="metric-value" id="total-alerts-big">-</div>
+                    <div class="metric-change" id="alerts-change">Loading...</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">System Uptime</div>
+                    <div class="metric-value" id="system-uptime">99.8%</div>
+                    <div class="metric-change">↑ 0.2%</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Threats Blocked</div>
+                    <div class="metric-value" id="threats-blocked">-</div>
+                    <div class="metric-change" id="threats-change">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Secondary Metrics -->
+            <div class="secondary-metrics">
+                <div class="secondary-card">
+                    <div class="secondary-value" id="alerts-today">-</div>
+                    <div class="secondary-label">Alerts Today</div>
+                </div>
+                <div class="secondary-card">
+                    <div class="secondary-value" id="new-blocked-ips">-</div>
+                    <div class="secondary-label">Blocked IPs</div>
+                </div>
+                <div class="secondary-card">
+                    <div class="secondary-value" id="scaling-events">-</div>
+                    <div class="secondary-label">Scaling Events</div>
+                </div>
+                <div class="secondary-card">
+                    <div class="secondary-value">99.5%</div>
+                    <div class="secondary-label">Accuracy</div>
+                </div>
+                <div class="secondary-card">
+                    <div class="secondary-value" id="active-sessions">-</div>
+                    <div class="secondary-label">Sessions</div>
+                </div>
+                <div class="secondary-card">
+                    <div class="secondary-value" id="avg-response">-</div>
+                    <div class="secondary-label">Avg Response</div>
+                </div>
+            </div>
+
+            <!-- Main Visualization -->
+            <div class="viz-grid">
+                <div class="viz-card">
+                    <div class="viz-header">
+                        <h3 class="viz-title">Alert Volume Trend</h3>
+                        <span class="viz-badge">Last 7 Days</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="alertsChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="viz-card">
+                    <div class="viz-header">
+                        <h3 class="viz-title">Live Activity</h3>
+                        <span class="viz-badge">Real-time</span>
+                    </div>
+                    <div class="activity-feed" id="activity-container">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <p>Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Grid -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="viz-header">
+                        <h3 class="viz-title">Detection Methods</h3>
+                        <span class="viz-badge">Distribution</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="detectionChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="viz-header">
+                        <h3 class="viz-title">Severity Analysis</h3>
+                        <span class="viz-badge">Breakdown</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="severityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Table -->
+            <div class="users-section">
+                <h3 class="section-title">Recent User Activity</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Last Login</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recent-users-body">
+                        <tr>
+                            <td colspan="5" class="loading">
+                                <div class="spinner"></div>
+                                Loading...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/admin.js"></script>
+
+    <script>
+        // 3D Background
+        const canvas = document.getElementById('canvas-bg');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        camera.position.z = 5;
+
+        // Particles
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 2500;
+        const posArray = new Float32Array(particlesCount * 3);
+
+        for (let i = 0; i < particlesCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 12;
+        }
+
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+        const particlesMaterial = new THREE.PointsMaterial({
+            size: 0.012,
+            color: 0xE0115F,
+            transparent: true,
+            opacity: 0.5,
+            blending: THREE.AdditiveBlending
+        });
+
+        const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particlesMesh);
+
+        // Animated Grid
+        const gridHelper = new THREE.GridHelper(18, 18, 0xE0115F, 0x222222);
+        gridHelper.position.y = -3;
+        gridHelper.material.opacity = 0.15;
+        gridHelper.material.transparent = true;
+        scene.add(gridHelper);
+
+        let mouseX = 0, mouseY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            particlesMesh.rotation.y += 0.0004;
+            particlesMesh.rotation.x += 0.0002;
+            particlesMesh.rotation.y += mouseX * 0.00004;
+            particlesMesh.rotation.x += mouseY * 0.00004;
+            
+            gridHelper.rotation.y += 0.0008;
+            
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Refresh button handler
+        function handleRefresh() {
+            const icon = document.getElementById('refresh-icon');
+            icon.classList.add('spinning');
+            
+            loadDashboardData();
+            
+            setTimeout(() => {
+                icon.classList.remove('spinning');
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

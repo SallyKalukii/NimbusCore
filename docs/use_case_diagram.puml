@@ -1,0 +1,134 @@
+@startuml Use_Case_Diagram
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam DefaultFontColor #000000
+skinparam ActorBackgroundColor #FFB3D9
+skinparam ActorBorderColor #E91E63
+skinparam UsecaseBackgroundColor #F5F5F5
+skinparam UsecaseBorderColor #333333
+skinparam PackageBackgroundColor #FAFAFA
+skinparam PackageBorderColor #666666
+skinparam ArrowColor #1E88E5
+
+title Serverless Log Monitoring System\nUse Case Diagram
+
+left to right direction
+
+' Actors
+actor "Web Application" as WebApp #FFB3D9
+actor "Mobile Application" as MobileApp #FFB3D9
+actor "Backend Service" as Backend #FFB3D9
+actor "Security Engineer" as SecEng #FFB3D9
+actor "DevOps Engineer" as DevOps #FFB3D9
+actor "System Administrator" as SysAdmin #FFB3D9
+
+rectangle "Log Monitoring System" {
+    
+    package "Log Ingestion" #FAFAFA {
+        usecase "Submit Logs via HTTP" as UC1
+        usecase "Validate Log Format" as UC2
+        usecase "Queue for Processing" as UC3
+    }
+    
+    package "Log Processing" #FAFAFA {
+        usecase "Parse Log Entries" as UC4
+        usecase "Mask Sensitive Data (PII)" as UC5
+        usecase "Enrich with Metadata" as UC6
+        usecase "Store in Database" as UC7
+    }
+    
+    package "Anomaly Detection" #FAFAFA {
+        usecase "Detect Error Rate Anomalies" as UC8
+        usecase "Detect Volume Anomalies" as UC9
+        usecase "Detect Brute Force Attacks\n**[PLANNED]**" as UC10
+        usecase "Detect Geographic Anomalies\n**[PLANNED]**" as UC11
+        usecase "Detect Payment Fraud\n**[PLANNED]**" as UC12
+    }
+    
+    package "Alerting" #FAFAFA {
+        usecase "Send Email Alerts\n**[PLANNED]**" as UC13
+        usecase "Send Slack Notifications\n**[PLANNED]**" as UC14
+        usecase "Send SMS for Critical Issues\n**[PLANNED]**" as UC15
+    }
+    
+    package "Monitoring & Analysis" #FAFAFA {
+        usecase "Query Historical Logs" as UC16
+        usecase "View Dashboard Metrics\n**[PLANNED]**" as UC17
+        usecase "Generate Reports\n**[PLANNED]**" as UC18
+        usecase "Configure Alert Rules\n**[PLANNED]**" as UC19
+    }
+    
+    package "System Management" #FAFAFA {
+        usecase "Configure Detection Thresholds" as UC20
+        usecase "Monitor System Health" as UC21
+        usecase "Scale Resources" as UC22
+        usecase "Review Audit Logs" as UC23
+    }
+}
+
+' Application Relationships
+WebApp --> UC1
+MobileApp --> UC1
+Backend --> UC1
+
+' Processing Flow (includes)
+UC1 ..> UC2 : <<include>>
+UC2 ..> UC3 : <<include>>
+UC3 ..> UC4 : <<include>>
+UC4 ..> UC5 : <<include>>
+UC4 ..> UC6 : <<include>>
+UC6 ..> UC7 : <<include>>
+
+' Detection triggers
+UC7 ..> UC8 : <<extend>>
+UC7 ..> UC9 : <<extend>>
+UC7 ..> UC10 : <<extend>>
+UC7 ..> UC11 : <<extend>>
+UC7 ..> UC12 : <<extend>>
+
+' Alerting triggers
+UC8 ..> UC13 : <<extend>>
+UC9 ..> UC14 : <<extend>>
+UC10 ..> UC15 : <<extend>>
+
+' Engineer Relationships
+SecEng --> UC8
+SecEng --> UC9
+SecEng --> UC10
+SecEng --> UC13
+SecEng --> UC16
+SecEng --> UC17
+SecEng --> UC19
+
+DevOps --> UC16
+DevOps --> UC17
+DevOps --> UC18
+DevOps --> UC20
+DevOps --> UC21
+
+SysAdmin --> UC20
+SysAdmin --> UC21
+SysAdmin --> UC22
+SysAdmin --> UC23
+
+note right of UC1
+  **Performance**
+  77 logs/second
+  533ms latency
+  100% success rate
+end note
+
+note right of UC8
+  **Detection Method**
+  Z-Score Analysis
+  Threshold: Z > 3
+  Confidence: 99.7%
+end note
+
+note bottom of "Log Monitoring System"
+  **Legend**
+  Active Features: Solid use cases
+  Planned Features: **[PLANNED]** label
+end note
+
+@enduml

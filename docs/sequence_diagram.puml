@@ -1,0 +1,117 @@
+@startuml Sequence_Diagram
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam DefaultFontColor #000000
+skinparam SequenceParticipantBackgroundColor #F5F5F5
+skinparam SequenceParticipantBorderColor #333333
+skinparam SequenceLifeLineBackgroundColor #FAFAFA
+skinparam SequenceLifeLineBorderColor #666666
+skinparam SequenceArrowColor #E91E63
+skinparam SequenceGroupBackgroundColor #FAFAFA
+skinparam SequenceGroupBorderColor #E91E63
+
+title Log Entry Processing Sequence\nFrom Ingestion to Storage
+
+actor "Web Application" as App #FFB3D9
+participant "Ingestion\nFunction" as Ingest #F5F5F5
+participant "Pub/Sub\n(raw-logs)" as PubSub1 #F5F5F5
+participant "Parser\nFunction" as Parser #F5F5F5
+participant "Pub/Sub\n(processed)" as PubSub2 #F5F5F5
+participant "Enrichment\nFunction" as Enrich #F5F5F5
+database "Firestore" as DB #F5F5F5
+participant "Statistical\nDetector" as Detector #F5F5F5
+
+== Log Ingestion (533ms avg) ==
+App -> Ingest : POST /ingest\n{"level":"ERROR","source":"payment-api",\n"message":"Payment timeout"}
+activate Ingest
+
+Ingest -> Ingest : Validate JSON format
+note right: Check required fields:\n- level\n- source\n- message
+
+Ingest -> Ingest : Add ingested_at timestamp
+Ingest -> PubSub1 : publish(log_data)\n[Async - Fire & Forget]
+activate PubSub1
+Ingest --> App : 202 Accepted\n{"status":"accepted"}
+deactivate Ingest
+note left: 533ms response time\n100% success rate
+
+== Async Processing (2-5 seconds) ==
+PubSub1 -> Parser : Event Trigger\n(Message Available)
+deactivate PubSub1
+activate Parser
+
+Parser -> Parser : Detect format: JSON
+Parser -> Parser : Extract fields:\n- timestamp\n- level: ERROR\n- source: payment-api\n- message
+
+Parser -> PubSub2 : publish(parsed_log)
+activate PubSub2
+deactivate Parser
+
+PubSub2 -> Enrich : Event Trigger\n(Message Available)
+deactivate PubSub2
+activate Enrich
+
+group PII Masking & Enrichment
+    Enrich -> Enrich : Scan for credit cards\n→ None found
+    Enrich -> Enrich : Scan for emails\n→ None found
+    Enrich -> Enrich : Scan for phone numbers\n→ None found
+    Enrich -> Enrich : Scan for SSN\n→ None found
+    
+    alt IP Address Present
+        Enrich -> Enrich : Get GeoIP data\nIP: 197.210.45.123\n→ Country: Kenya\n→ City: Nairobi
+    end
+    
+    alt User Agent Present
+        Enrich -> Enrich : Parse User Agent\n→ Browser: Chrome\n→ OS: Windows\n→ Device: Desktop
+    end
+    
+    Enrich -> Enrich : Add enriched_at timestamp
+end
+
+Enrich -> DB : store(enriched_log)
+activate DB
+DB --> Enrich : Success
+deactivate DB
+deactivate Enrich
+
+== Anomaly Detection (Runs every 5 min) ==
+Detector -> DB : Query logs\n(last 1 hour)
+activate Detector
+activate DB
+DB --> Detector : Return logs[]\n(500 logs)
+deactivate DB
+
+Detector -> Detector : Calculate error rate:\n42/500 = 8.4%
+
+Detector -> Detector : Calculate Z-Score:\nZ = (8.4 - 8.0) / 3.0\nZ = 0.13
+
+alt Z-Score > 3
+    Detector -> Detector : Create anomaly alert
+    note right #FFB3D9: ANOMALY DETECTED
+else Z-Score ≤ 3
+    Detector -> Detector : No anomaly
+    note right: Within normal range
+end
+
+Detector -> Detector : Calculate volume:\n500 logs/hour
+
+Detector -> Detector : Calculate Z-Score:\nZ = (500 - 100) / 30\nZ = 13.33
+
+Detector -> Detector : Create volume anomaly\nSeverity: HIGH (Z > 4)
+note right #FFB3D9: VOLUME ANOMALY\nZ-Score: 13.33
+
+deactivate Detector
+
+legend right
+  **Timeline**
+  Ingestion: 0-533ms
+  Queue: 533-600ms
+  Processing: 1-3 seconds
+  Storage: 3-5 seconds
+  Detection: Every 5 minutes
+  
+  **Data Transformations**
+  Raw → Validated → Parsed → Enriched → Stored → Analyzed
+endlegend
+
+@enduml

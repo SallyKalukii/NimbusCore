@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# GCP
+*.json
+!firebase.json
+credentials/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+
+# Large datasets
+datasets/
+*.csv
+*.zip
+*.pcap
+*.pcap_ISCX.csv
+github-upload/

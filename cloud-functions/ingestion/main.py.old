@@ -1,0 +1,100 @@
+import functions_framework
+from google.cloud import pubsub_v1
+import json
+from datetime import datetime
+import os
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Initialize Pub/Sub publisher
+publisher = pubsub_v1.PublisherClient()
+project_id = os.environ.get('GCP_PROJECT')
+topic_name = f'projects/{project_id}/topics/raw-logs'
+
+@functions_framework.http
+def ingest_log(request):
+    """
+    HTTP Cloud Function to ingest logs - OPTIMIZED VERSION
+    
+    Returns immediately without waiting for Pub/Sub confirmation.
+    Uses fire-and-forget pattern for maximum throughput.
+    """
+    
+    # CORS headers
+    headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST',
+        'Access-Control-Allow-Headers': 'Content-Type'
+    }
+    
+    # Handle preflight requests
+    if request.method == 'OPTIONS':
+        return ('', 204, headers)
+    
+    # Only accept POST requests
+    if request.method != 'POST':
+        return ({'error': 'Method not allowed'}, 405, headers)
+    
+    try:
+        # Parse request body
+        log_data = request.get_json()
+        
+        if not log_data:
+            return ({'error': 'No JSON body provided'}, 400, headers)
+        
+        # Validate required fields
+        required_fields = ['level', 'source', 'message']
+        missing_fields = [field for field in required_fields if field not in log_data]
+        
+        if missing_fields:
+            return ({
+                'error': f'Missing required fields: {", ".join(missing_fields)}'
+            }, 400, headers)
+        
+        # Add timestamps
+        if 'timestamp' not in log_data:
+            log_data['timestamp'] = datetime.utcnow().isoformat() + 'Z'
+        
+        log_data['ingested_at'] = datetime.utcnow().isoformat() + 'Z'
+        log_data['ingestion_source'] = 'http-endpoint'
+        
+        # Publish to Pub/Sub - ASYNC (don't wait for confirmation)
+        message_data = json.dumps(log_data).encode('utf-8')
+        
+        try:
+            # Publish without waiting for result
+            future = publisher.publish(topic_name, message_data)
+            
+            # Add callback for logging (doesn't block the response)
+            def callback(future):
+                try:
+                    future.result(timeout=1)
+                    logger.info(f"Published log from {log_data.get('source')}")
+                except Exception as e:
+                    logger.error(f"Publish failed: {str(e)}")
+            
+            future.add_done_callback(callback)
+            
+        except Exception as e:
+            logger.error(f"Error publishing: {str(e)}")
+            # Still return success - log is received even if publish fails
+        
+        # Return immediately with HTTP 202 (Accepted for async processing)
+        return ({
+            'status': 'accepted',
+            'message': 'Log accepted for processing',
+            'timestamp': log_data['ingested_at']
+        }, 202, headers)
+        
+    except json.JSONDecodeError:
+        return ({'error': 'Invalid JSON format'}, 400, headers)
+    
+    except Exception as e:
+        logger.error(f"Error processing log: {str(e)}")
+        return ({
+            'error': 'Internal server error',
+            'details': str(e)
+        }, 500, headers)

@@ -1,0 +1,90 @@
+import functions_framework
+from google.cloud import pubsub_v1
+import json
+from datetime import datetime
+import os
+
+# Initialize Pub/Sub publisher
+publisher = pubsub_v1.PublisherClient()
+project_id = os.environ.get('GCP_PROJECT')
+topic_name = f'projects/{project_id}/topics/raw-logs'
+
+@functions_framework.http
+def ingest_log(request):
+    """
+    HTTP Cloud Function to ingest logs.
+    
+    Accepts JSON log data via POST request and publishes to Pub/Sub.
+    
+    Expected JSON format:
+    {
+        "timestamp": "2025-01-20T10:30:00Z",
+        "level": "INFO|WARN|ERROR|CRITICAL",
+        "source": "app-name",
+        "message": "Log message",
+        "user_ip": "192.168.1.100",
+        "user_id": "user123",
+        "request_path": "/api/endpoint"
+    }
+    """
+    
+    # CORS headers (allow requests from dashboard)
+    headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST',
+        'Access-Control-Allow-Headers': 'Content-Type'
+    }
+    
+    # Handle preflight requests
+    if request.method == 'OPTIONS':
+        return ('', 204, headers)
+    
+    # Only accept POST requests
+    if request.method != 'POST':
+        return ({'error': 'Method not allowed'}, 405, headers)
+    
+    try:
+        # Parse request body
+        log_data = request.get_json()
+        
+        if not log_data:
+            return ({'error': 'No JSON body provided'}, 400, headers)
+        
+        # Validate required fields
+        required_fields = ['level', 'source', 'message']
+        missing_fields = [field for field in required_fields if field not in log_data]
+        
+        if missing_fields:
+            return ({
+                'error': f'Missing required fields: {", ".join(missing_fields)}'
+            }, 400, headers)
+        
+        # Add ingestion timestamp if not provided
+        if 'timestamp' not in log_data:
+            log_data['timestamp'] = datetime.utcnow().isoformat() + 'Z'
+        
+        # Add metadata
+        log_data['ingested_at'] = datetime.utcnow().isoformat() + 'Z'
+        log_data['ingestion_source'] = 'http-endpoint'
+        
+        # Publish to Pub/Sub
+        message_data = json.dumps(log_data).encode('utf-8')
+        future = publisher.publish(topic_name, message_data)
+        message_id = future.result()  # Wait for publish to complete
+        
+        # Return success response
+        return ({
+            'status': 'success',
+            'message_id': message_id,
+            'timestamp': log_data['ingested_at']
+        }, 200, headers)
+        
+    except json.JSONDecodeError:
+        return ({'error': 'Invalid JSON format'}, 400, headers)
+    
+    except Exception as e:
+        print(f"Error processing log: {str(e)}")
+        return ({
+            'error': 'Internal server error',
+            'details': str(e)
+        }, 500, headers)
