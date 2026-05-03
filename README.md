@@ -212,6 +212,123 @@ See [docs/LIVE_DEMO.md](docs/LIVE_DEMO.md) for complete VM setup and attack simu
 
 ---
 
+## ⚙️ System Requirements
+
+### **Minimum Requirements:**
+- **Operating System:** Windows 10/11, macOS 10.15+, or Linux (Ubuntu 20.04+)
+- **RAM:** 4GB minimum (8GB recommended)
+- **Disk Space:** 2GB free space
+- **Internet:** Stable connection (minimum 5 Mbps)
+- **Browser:** Chrome 90+, Firefox 88+, Safari 14+, or Edge 90+
+
+### **For Live Demo (Optional):**
+- **VirtualBox:** Version 7.0 or higher
+- **VM Resources:** 4GB RAM total (2GB per VM)
+- **Additional Disk:** 40GB for VM images
+
+### **Developer Requirements:**
+- **Python:** 3.11 or higher
+- **Node.js:** 16+ (for Firebase CLI)
+- **Google Cloud SDK:** Latest version
+- **Git:** For version control
+
+---
+
+## 🔑 Configuration & Credentials
+
+### **Required API Keys/Credentials:**
+
+1. **Google Cloud Platform:**
+   - Create project at https://console.cloud.google.com
+   - Enable billing (free tier available)
+   - Note your `PROJECT_ID`
+
+2. **Firebase:**
+   - Create project at https://console.firebase.google.com
+   - Enable Authentication (Email/Password)
+   - Enable Firestore Database
+   - Enable Hosting
+   - Download `firebase-config.js` from project settings
+
+3. **Slack Notifications (Optional):**
+   - Create incoming webhook at https://api.slack.com/messaging/webhooks
+   - Format: `https://hooks.slack.com/services/YOUR/WEBHOOK/URL`
+
+4. **SendGrid Email (Optional):**
+   - Sign up at https://sendgrid.com
+   - Generate API key from Settings > API Keys
+   - Format: `SG.xxxxxxxxxxxxxxxxxxxxx`
+
+### **Environment Variables:**
+```bash
+# Alert Manager Function
+SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..."
+SENDGRID_API_KEY="SG.xxxxxxxxxxxxx"
+ALERT_EMAIL="your-email@example.com"
+
+# All Functions
+GCP_PROJECT="your-project-id"
+```
+
+---
+
+## 📖 User Manual
+
+### **Accessing the Dashboard:**
+1. Navigate to: `https://your-project-id.web.app`
+2. Login with credentials:
+   - **Demo Account:** demo@nimbuscore.com / demo123
+   - **Create Account:** Click "Sign Up" on login page
+
+### **Dashboard Features:**
+
+**1. Alert Timeline:**
+- View recent security alerts in chronological order
+- Filter by severity: HIGH, MEDIUM, LOW
+- Click alert for detailed information
+
+**2. Threat Map:**
+- Red markers = Blocked IP addresses
+- Click marker to see IP details, location, block reason
+- Map auto-updates every 30 seconds
+
+**3. Metrics Cards:**
+- **Total Alerts:** Cumulative detection count
+- **Blocked IPs:** Number of banned addresses
+- **Active Threats:** HIGH severity alerts in last 24h
+- **Detection Rate:** System accuracy percentage
+
+**4. Threat Trends Chart:**
+- Shows 7-day alert volume history
+- Hover for exact daily counts
+- Identifies attack patterns over time
+
+### **Submitting Logs (API):**
+```bash
+curl -X POST https://your-ingestion-url/ingest_log \
+  -H "Content-Type: application/json" \
+  -d '{
+    "level": "ERROR",
+    "source": "web_server",
+    "message": "Suspicious activity detected",
+    "timestamp": "2026-04-06T10:00:00Z",
+    "source_ip": "192.168.1.100",
+    "attack_type": "DDoS"
+  }'
+```
+
+### **Troubleshooting:**
+
+**Problem:** Dashboard shows "No data"
+- **Solution:** Check Firestore rules allow read access, verify internet connection
+
+**Problem:** Alerts not appearing
+- **Solution:** Verify Cloud Functions are deployed, check function logs with `gcloud functions logs read`
+
+**Problem:** IP blocking not working
+- **Solution:** Ensure Firestore composite index created for `alerts` collection (source_ip + timestamp)
+
+---
 ##  Results
 
 **Dataset Testing (100 attack samples):**
@@ -275,7 +392,7 @@ See [docs/LIVE_DEMO.md](docs/LIVE_DEMO.md) for complete VM setup and attack simu
 
 ##  Contact
 
-- Email: sally.mutemwa@ashesi.edu.gh
+- Email: salome.mutemwa@ashesi.edu.gh, purity.moraa@ashesi.edu.gh
 - LinkedIn: www.linkedin.com/in/salome-mutemwa
 - Project Demo: (https://capstone-log-monitoring.web.app/index.html)
 
