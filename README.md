@@ -1,6 +1,3 @@
-cd ~/Documents/capstone-log-monitoring/github-upload
-
-cat > README.md << 'EOF'
 #  NimbusCore - AI-Powered Security Monitoring Platform
 
 **Serverless, real-time threat detection and automated response system built on Google Cloud Platform**
