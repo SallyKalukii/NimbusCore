@@ -122,7 +122,7 @@ nimbuscore/
 
 ### **1. Clone Repository**
 ```bash
-git clone https://github.com/YOUR_USERNAME/nimbuscore.git
+git clone https://github.com/SallyKalukii/nimbuscore.git
 cd nimbuscore
 ```
 
